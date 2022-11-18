@@ -33,16 +33,16 @@ All ingredients to build the training / inference routines are located in the fo
 
 ### Training 
 
-To train models use [this script](/train_multiple_models.py) following the argument definitions given as code comments. This will call the [data generation script](/generate_data.py) script to generate some common data for all models under some given $p^\theta$, then the [training script](/train.py) for each variational model separately. 
+To train models use [this script](train_multiple_models.py) following the argument definitions given as code comments. This will call the [data generation script](generate_data.py) script to generate some common data for all models under some given $p^\theta$, then the [training script](/train.py) for each variational model separately. 
 
 Everything ends up in `experiments/<name-of-the-generative-models>/<date>` with separate subfolders for the different variational models. 
 
 
 ### Evaluation 
 
-To evaluate trained models on some data, use [this script](/multiple_evals.py) following the argment definitions given as code comments. This will generate a subfolder of the form `<experiment-dir>/evals` containing the evaluation results of each different model. 
+To evaluate trained models on some data, use [this script](multiple_evals.py) following the argment definitions given as code comments. This will generate a subfolder of the form `<experiment-dir>/evals` containing the evaluation results of each different model. 
 
-To plot the results and overlay multiple model evaluations, use [this script](/combine_evals.py).
+To plot the results and overlay multiple model evaluations, use [this script](combine_evals.py).
 
 
 
