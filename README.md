@@ -26,10 +26,14 @@ pip install -r requirements.txt
 ### Internals
 All ingredients to build the training / inference routines are located in the folder [backward_ica](backward_ica/). In particular: 
 
+- [the Markov kernels](backward_ica/stats/kernels.py) and the associated [distributions](backward_ica/stats/distributions.py).
 - [the HMM classes](backward_ica/stats/hmm.py) used as generative models and the different mappings involved (linear / nonlinear).
 - [the variational models](backward_ica/variational/models.py) with [the DNNs involved](backward_ica/variational/inference_nets.py).
 - [the optimization routines](backward_ica/training.py).
 - [the ELBO definitions](backward_ica/elbos.py).
+- the [Kalman](backward_ica/stats/kalman.py) and [particle filtering](backward_ica/stats/smc.py) routines used for oracle smoothing in linear and nonlinear models. 
+
+Note that some important abstract base classes are defined in [this file](backward_ica/stats/__init__.py) to give a common global skeleton for the models and provide some subroutines that are shared between several of them (e.g. analytical backward marginalisation and linear Gaussian conjugations, forward-backward schemes, etc). [This file](backward_ica/utils.py) contains common tools for all implementations but also a set of default arguments in the `get_defaults` function (e.g. default init variances, DNN layers, etc). 
 
 ### Training 
 
