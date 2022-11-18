@@ -1,5 +1,5 @@
 from backward_ica.stats.hmm import LinearGaussianHMM
-from backward_ica.variational.models import NeuralLinearBackwardSmoother, JohnsonBackward, JohnsonForward
+from backward_ica.variational.models import NeuralLinearBackwardSmoother, ConjugateBackward, ConjugateForward
 
 def get_variational_model(args, p=None, key_for_random_params=None):
 
@@ -12,7 +12,7 @@ def get_variational_model(args, p=None, key_for_random_params=None):
                             transition_bias=args.transition_bias, 
                             emission_bias=args.emission_bias)
         
-    elif 'neural_backward_linear' in args.model:
+    elif 'gru_backward' in args.model:
         if (p is not None) and (p.transition_kernel.map_type == 'linear'):
             q = NeuralLinearBackwardSmoother.with_transition_from_p(p, args.update_layers)
 
@@ -30,14 +30,14 @@ def get_variational_model(args, p=None, key_for_random_params=None):
     #                                     update_layers=args.update_layers,
     #                                     backwd_layers=args.backwd_map_layers)
 
-    elif 'johnson_backward' in args.model:
-            q = JohnsonBackward(state_dim=args.state_dim, 
+    elif 'conjugate_backward' in args.model:
+            q = ConjugateBackward(state_dim=args.state_dim, 
                                     obs_dim=args.obs_dim, 
                                     layers=args.update_layers,
                                     anisotropic=args.anisotropic)
 
-    elif 'johnson_forward' in args.model:
-            q = JohnsonForward(state_dim=args.state_dim, 
+    elif 'conjugate_forward' in args.model:
+            q = ConjugateForward(state_dim=args.state_dim, 
                                     obs_dim=args.obs_dim, 
                                     layers=args.update_layers,
                                     anisotropic=args.anisotropic)

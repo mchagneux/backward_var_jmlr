@@ -19,13 +19,13 @@ def main(args, method_name):
     os.makedirs(eval_dir, exist_ok=True)
     utils.save_args(args, 'args', eval_dir)
 
-    if method_name == 'johnson_backward':
+    if method_name == 'conjugate_backward':
         pretty_name = 'Conjugate Backward'
 
-    elif method_name == 'johnson_forward':
+    elif method_name == 'conjugate_forward':
         pretty_name = 'Conjugate Forward'
 
-    elif method_name == 'neural_backward_linear':
+    elif method_name == 'gru_backward':
         pretty_name = 'GRU Backward'
 
     elif method_name == 'external_campbell':
@@ -199,7 +199,7 @@ if __name__ == '__main__':
     import argparse 
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp_dir',type=str, default='')
-    parser.add_argument('--models', type=str, nargs='+', default=['linear_10','linear_15','linear_195'])
+    parser.add_argument('--models', type=str, nargs='+', default=['conjugate_backward','conjugate_forward','gru_backward'])
     parser.add_argument('--n_slices', type=int, default=250)     
     parser.add_argument('--rmse', action='store_true')
     parser.add_argument('--plot', action='store_true')

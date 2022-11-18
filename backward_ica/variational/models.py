@@ -165,7 +165,7 @@ class NeuralLinearBackwardSmoother(LinearBackwardSmoother):
 
 @register_pytree_node_class
 @dataclass(init=True)
-class JohnsonParams:
+class ConjugateParams:
     prior: Gaussian.Params
     transition:Kernel.Params
     net:Any
@@ -181,7 +181,7 @@ class JohnsonParams:
     def tree_unflatten(cls, aux_data, children):
         return cls(*children)
 
-class JohnsonSmoother:
+class ConjugateSmoother:
 
     def __init__(self, state_dim, obs_dim, layers, anisotropic):
 
@@ -193,7 +193,7 @@ class JohnsonSmoother:
                                                         bias=False, 
                                                         range_params=(-1,1))(state_dim, state_dim)
 
-        net = inference_nets.johnson_anisotropic if anisotropic else inference_nets.johnson
+        net = inference_nets.johnson_anisotropic if anisotropic else inference_nets.conjugate
         self._net = hk.without_apply_rng(hk.transform(partial(net, layers=layers, state_dim=state_dim)))
 
 
@@ -204,13 +204,13 @@ class JohnsonSmoother:
         transition_params = self.transition_kernel.get_random_params(key_transition)
         net_params = self._net.init(key_net, jnp.empty((self.obs_dim,)))
 
-        params = JohnsonParams(prior_params, transition_params, net_params)
+        params = ConjugateParams(prior_params, transition_params, net_params)
         if params_to_set is not None: 
             params = self.set_params(params, params_to_set)
         return params
 
     def format_params(self, params):
-        return JohnsonParams(self.prior_dist.format_params(params.prior), 
+        return ConjugateParams(self.prior_dist.format_params(params.prior), 
                             self.transition_kernel.format_params(params.transition),
                             params.net)
 
@@ -230,11 +230,11 @@ class JohnsonSmoother:
         print('-- in transition:', sum(jnp.atleast_1d(leaf).shape[0] for leaf in tree_leaves((params.transition,))))
         print('-- in net:', sum(jnp.atleast_1d(leaf).shape[0] for leaf in tree_leaves((params.net,))))
     
-class JohnsonBackward(JohnsonSmoother, LinearBackwardSmoother):
+class ConjugateBackward(ConjugateSmoother, LinearBackwardSmoother):
 
     def __init__(self, state_dim, obs_dim, layers, anisotropic):
 
-        JohnsonSmoother.__init__(self, state_dim, obs_dim, layers, anisotropic)
+        ConjugateSmoother.__init__(self, state_dim, obs_dim, layers, anisotropic)
         LinearBackwardSmoother.__init__(self, state_dim)
 
 
@@ -263,7 +263,7 @@ class JohnsonBackward(JohnsonSmoother, LinearBackwardSmoother):
 
 BackwdVar = namedtuple('BackwdVar', ['base', 'tilde'])
 
-class JohnsonForward(JohnsonSmoother, TwoFilterSmoother):
+class ConjugateForward(ConjugateSmoother, TwoFilterSmoother):
     
     @staticmethod
     def linear_gaussian_forward_params_from_backwd_variable_and_transition(backwd_variable_tilde:Gaussian.Params, 
@@ -282,7 +282,7 @@ class JohnsonForward(JohnsonSmoother, TwoFilterSmoother):
                             noise=Gaussian.NoiseParams(Scale(prec=prec_forward)))
         
     def __init__(self, state_dim, obs_dim, layers, anisotropic):
-        JohnsonSmoother.__init__(self, state_dim, obs_dim, layers, anisotropic)
+        ConjugateSmoother.__init__(self, state_dim, obs_dim, layers, anisotropic)
         
         TwoFilterSmoother.__init__(self, state_dim, 
                                     forward_kernel=Kernel.linear_gaussian(matrix_conditonning=None, 
@@ -444,155 +444,4 @@ class JohnsonForward(JohnsonSmoother, TwoFilterSmoother):
         return vmap(lambda x:x.mean)(filt_params_seq), vmap(lambda x:x.scale.cov)(filt_params_seq)
         
 
-
-
-
-
-# class NeuralBackwardSmoother(BackwardSmoother):
-
-#     def __init__(self, 
-#                 state_dim, 
-#                 obs_dim,
-#                 update_layers,
-#                 backwd_layers,
-#                 filt_dist=Gaussian):
-
-#         self.state_dim = state_dim 
-#         self.obs_dim = obs_dim 
-
-#         self.update_layers = update_layers
-
-#         self.filt_params_shape = jnp.sum(jnp.array(update_layers))
-
-#         self.filt_update_init_params, self.filt_update_apply = hk.without_apply_rng(hk.transform(partial(self.filt_update_forward, 
-#                                                                 layers=update_layers, 
-#                                                                 state_dim=state_dim)))
-        
-
-#         backwd_kernel_map_def = {'map_type':'nonlinear',
-#                                 'map_info' : {'homogeneous': False, 'varying_params_shape':self.filt_params_shape},
-#                                 'map': partial(self.backwd_update_forward, layers=backwd_layers)}
-                
-
-#         super().__init__(filt_dist, 
-#                         Kernel(state_dim, state_dim, backwd_kernel_map_def, Gaussian))
-
-#     def get_random_params(self, key, args=None):
-        
-#         key_prior, key_filt, key_back = random.split(key, 3)
-    
-#         dummy_obs = jnp.ones((self.obs_dim,))
-
-
-#         key_priors = random.split(key_prior, len(self.update_layers))
-#         prior_params = tuple([random.normal(key, shape=[size]) for key, size in zip(key_priors, self.update_layers)])
-#         filt_update_params = self.filt_update_init_params(key_filt, dummy_obs, prior_params)
-
-#         backwd_params = self.backwd_kernel.get_random_params(key_back)
-
-#         return GeneralBackwardSmootherParams(prior=prior_params,
-#                                             filt_update=filt_update_params, 
-#                                             backwd=backwd_params)
-
-#     def smooth_seq(self, key, obs_seq, params, num_samples, lag=None):
-
-#         formatted_params = self.format_params(params)
-
-#         filt_params_seq = self.compute_filt_params_seq(obs_seq, formatted_params)
-#         backwd_params_seq = self.compute_backwd_params_seq(filt_params_seq, formatted_params)
-
-#         if lag is None:
-#             marginals = self.compute_marginals(key, filt_params_seq, backwd_params_seq, num_samples)
-#         else: 
-#             marginals = self.compute_fixed_lag_marginals(key, filt_params_seq, backwd_params_seq, num_samples, lag)
-
-#         return jnp.mean(marginals, axis=0), jnp.var(marginals, axis=0)
-
-#     def format_params(self, params):
-#         return params
-
-#     def init_filt_params(self, obs, params):
-#         return FiltState(*self.filt_update_apply(params.filt_update, obs, params.prior))
-
-#     def new_filt_params(self, obs, filt_params:FiltState, params):
-#         return FiltState(*self.filt_update_apply(params.filt_update, obs, filt_params.hidden))
-
-#     def get_init_state(self):
-#         return tuple([jnp.zeros(shape=[size]) for size in self.update_layers])
-
-#     def new_backwd_params(self, filt_params:FiltState, params):
-
-#         return BackwardState(params.backwd, jnp.concatenate(filt_params.hidden))
-
-#     def compute_marginals(self, key, filt_params_seq, backwd_params_seq, num_samples):
-
-#         def _sample_for_marginals(key, last_filt_params:FiltState, backwd_params_seq):
-            
-#             keys = random.split(key, backwd_params_seq.varying.shape[0]+1)
-
-#             last_sample = self.filt_dist.sample(keys[-1], last_filt_params.out)
-
-#             def _sample_step(next_sample, x):
-                
-#                 key, backwd_params = x
-#                 sample = self.backwd_kernel.sample(key, next_sample, backwd_params)
-#                 return sample, sample
-            
-#             samples = lax.scan(_sample_step, init=last_sample, xs=(keys[:-1], backwd_params_seq), reverse=True)[1]
-
-#             return tree_append(samples, last_sample)
-
-#         parallel_sampler = jit(vmap(_sample_for_marginals, in_axes=(0,None,None)))
-
-#         return parallel_sampler(random.split(key, num_samples), tree_get_idx(-1, filt_params_seq), backwd_params_seq)
-
-#     def compute_fixed_lag_marginals(self, key, filt_params_seq, backwd_params_seq, num_samples, lag):
-        
-#         def _sample_for_marginals(key, filt_params_seq, backwd_params_seq):
-
-#             def _sample_for_marginal(init, x):
-
-#                 key, lagged_filt_params, strided_backwd_params_subseq = x
-
-#                 keys = random.split(key, strided_backwd_params_subseq.varying.shape[0]+1)
-
-#                 last_sample = self.filt_dist.sample(keys[-1], lagged_filt_params.out)
-
-#                 def _sample_step(next_sample, x):
-                    
-#                     key, backwd_params = x
-#                     sample = self.backwd_kernel.sample(key, next_sample, backwd_params)
-#                     return sample, None
-
-#                 marginal_sample = lax.scan(_sample_step, 
-#                                         init=last_sample, 
-#                                         xs=(keys[:-1], strided_backwd_params_subseq), 
-#                                         reverse=True)[0]
-
-#                 return None, marginal_sample
-                
-
-#             return lax.scan(_sample_for_marginal, 
-#                                 init=None, 
-#                                 xs=(random.split(key, backwd_params_seq.varying.shape[0]-lag+1), tree_get_slice(lag, None, filt_params_seq), tree_get_strides(lag, backwd_params_seq)))[1]
-        
-#         parallel_sampler = jit(vmap(_sample_for_marginals, in_axes=(0,None,None)))
-
-#         return parallel_sampler(random.split(key, num_samples), filt_params_seq, backwd_params_seq)
-    
-#     def print_num_params(self):
-#         params = self.get_random_params(random.PRNGKey(0))
-#         print('Num params:', sum(jnp.atleast_1d(leaf).shape[0] for leaf in tree_leaves(params)))
-#         print('-- filt net:', sum(jnp.atleast_1d(leaf).shape[0] for leaf in tree_leaves((params.filt_update))))
-#         print('-- prior state:', sum(jnp.atleast_1d(leaf).shape[0] for leaf in tree_leaves((params.prior))))
-#         print('-- backwd net:', sum(jnp.atleast_1d(leaf).shape[0] for leaf in tree_leaves((params.backwd))))
-        
-
-
-            
-        
-
-
-
-        
 

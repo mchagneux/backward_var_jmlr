@@ -11,24 +11,24 @@ import jax.numpy as jnp
 import jax
 exp_type = 'Sequence'
 
-exp_dirs = ['experiments/p_linear_transition_with_nonlinear_emission/2022_10_31__14_14_47']
+exp_dirs = ['experiments/p_linear_transition_with_nonlinear_emission/2022_10_31__14_14_47'] # name of the experiment directories
 
-exp_names = ['All subsequences', 'Whole sequence only']
-            
-ref = 'smc'
+exp_names = ['All subsequences', 'Whole sequence only'] # name of the subplots to suepr
+ref = 'smc' # reference results to compare to (one of 'smc' of 'states')
 
 date = datetime.now().strftime('%Y_%m_%d__%H_%M_%S')
+
+
+method_names = ["conjuate_backward",
+        "gru_backward",
+        "conjugate_forward"]
+
 
 eval_dir = os.path.join('experiments', 'combine_evals', date)
 os.makedirs(eval_dir, exist_ok=True)
 
 evals_additive = dict()
 evals_marginals = dict()
-method_names = [
-        "johnson_backward",
-        "neural_backward_linear",
-        "johnson_forward"
-    ]
 
 args = argparse.Namespace()
 args.exp_dirs = exp_dirs 
@@ -58,11 +58,11 @@ if exp_type != 'Sequence':
             method_eval_dir = os.path.join(exp_dir, 'evals', method_name)
             if not os.path.exists(method_eval_dir):
                 continue 
-            if method_name == 'johnson_backward':
+            if method_name == 'conjugate_backward':
                 pretty_name = 'Conjugate Backward'
-            elif method_name == 'johnson_forward':
+            elif method_name == 'conjugate_forward':
                 pretty_name = 'Conjugate Forward'
-            elif method_name == 'neural_backward_linear':
+            elif method_name == 'gru_backward':
                 pretty_name = 'GRU Backward'
             elif method_name == 'external_campbell':
                 pretty_name = 'Campbell'
@@ -93,11 +93,11 @@ else:
             method_eval_dir = os.path.join(exp_dirs[0], 'evals', method_name)
             if not os.path.exists(method_eval_dir):
                 continue 
-            if method_name == 'johnson_backward':
+            if method_name == 'conjugate_backward':
                 pretty_name = 'Conjugate Backward'
-            elif method_name == 'johnson_forward':
+            elif method_name == 'conjugate_forward':
                 pretty_name = 'Conjugate Forward'
-            elif method_name == 'neural_backward_linear':
+            elif method_name == 'gru_backward':
                 pretty_name = 'GRU Backward'
             elif method_name == 'external_campbell':
                 pretty_name = 'Campbell'
