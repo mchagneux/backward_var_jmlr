@@ -40,7 +40,7 @@ Everything ends up in `experiments/<name-of-the-generative-models>/<date>` with 
 
 ### Evaluation 
 
-To evaluate trained models on some data, use [this script](/multiple_evals.py) following the argment definitions given as code comments. This will generate a subfolder of the form ``experiments/<name-of-the-generative-models>/<date>/evals` containing the evaluation results of each different model. 
+To evaluate trained models on some data, use [this script](/multiple_evals.py) following the argment definitions given as code comments. This will generate a subfolder of the form `experiments/<name-of-the-generative-models>/<date>/evals` containing the evaluation results of each different model. 
 
 To plot the results and overlay multiple model evaluations, use [this script](/combine_evals.py).
 
